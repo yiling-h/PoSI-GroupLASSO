@@ -1,0 +1,10 @@
+Cython
+numpy==1.23.4
+scipy
+pandas
+mpmath
+pyinter
+sklearn
+# keras
+# tensorflow
+traitlets
