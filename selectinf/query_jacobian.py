@@ -254,7 +254,7 @@ class gaussian_query(object):
                                   **method_args)
 
             return G.solve_estimating_eqn(alternatives=target_spec.alternatives,
-                                          level=level)[0]
+                                          level=level)[0:2]
 
         elif method == 'posterior':
             if self.useJacobian:
