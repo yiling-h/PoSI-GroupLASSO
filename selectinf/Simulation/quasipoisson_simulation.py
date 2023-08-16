@@ -6,13 +6,13 @@ import sys
 from selectinf.group_lasso_query_quasi import (group_lasso_quasi,
                                                split_group_lasso_quasi)
 
-from selectinf.Tests.instance import (quasi_poisson_group_instance)
+from selectinf.Simulation.instance import (quasi_poisson_group_instance)
 
 
-from selectinf.Tests.test_quasipoisson_group_lasso import(calculate_F1_score,
-                                                          naive_inference,
-                                                          randomization_inference_fast,
-                                                          data_splitting)
+from selectinf.Simulation.test_quasipoisson_group_lasso import(calculate_F1_score,
+                                                               naive_inference,
+                                                               randomization_inference_fast,
+                                                               data_splitting)
 
 def comparison_quasipoisson_group_lasso_vary_s(n=1000,
                                                p=100,

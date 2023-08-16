@@ -10,14 +10,14 @@ import sys
 from selectinf.group_lasso_query import (group_lasso,
                                          split_group_lasso)
 
-from selectinf.Tests.instance import (poisson_group_instance)
+from selectinf.Simulation.instance import (logistic_group_instance)
 
-from selectinf.Tests.test_poisson_group_lasso import(calculate_F1_score,
-                                                     naive_inference,
-                                                     randomization_inference_fast,
-                                                     split_inference, data_splitting)
+from selectinf.Simulation.test_logistic_group_lasso import (calculate_F1_score,
+                                                            naive_inference,
+                                                            randomization_inference_fast,
+                                                            split_inference, data_splitting)
 
-def comparison_poisson(range):
+def comparison_logistic(range):
     """
         Compare to R randomized lasso
         """
@@ -45,8 +45,8 @@ def comparison_poisson(range):
         for i in range:
             np.random.seed(i)
 
-            inst, const, const_split = poisson_group_instance, group_lasso.poisson, \
-                                       split_group_lasso.poisson
+            inst, const, const_split = logistic_group_instance, group_lasso.logistic, \
+                                       split_group_lasso.logistic
             signal = np.sqrt(signal_fac * 2 * np.log(p))
             signal_str = str(np.round(signal, decimals=2))
 
@@ -192,8 +192,8 @@ def comparison_poisson(range):
     print("task done")
     return oper_char_df, confint_df
 
-def comparison_poisson_group_lasso_vary_s_parallel(iter=1000,
-                                                    ncore=20):
+def comparison_logistic_group_lasso_vary_s_parallel(iter=100,
+                                                         ncore=20):
     def n_range_to_k(n, k):
         l = []
         for i in range(k):
@@ -216,7 +216,7 @@ def comparison_poisson_group_lasso_vary_s_parallel(iter=1000,
 
 
     pool = multiprocessing.Pool(processes=ncore)
-    pool_outputs = pool.map(comparison_poisson, range_list)
+    pool_outputs = pool.map(comparison_logistic, range_list)
 
     # with Pool(ncore) as pool:
     #     pool_outputs = list(
@@ -235,8 +235,8 @@ def comparison_poisson_group_lasso_vary_s_parallel(iter=1000,
 
     #oper_char_df.to_csv('selectinf/randomized/Tests/logis_vary_sparsity.csv', index=False)
     #confint_df.to_csv('selectinf/randomized/Tests/logis_CI_vary_sparsity.csv', index=False)
-    oper_char_df.to_csv('selectinf/randomized/Tests/poisson_vary_sparsity.csv', index=False)
-    confint_df.to_csv('selectinf/randomized/Tests/poisson_CI_vary_sparsity.csv', index=False)
+    oper_char_df.to_csv('selectinf/randomized/Tests/logis_vary_sparsity.csv', index=False)
+    confint_df.to_csv('selectinf/randomized/Tests/logis_CI_vary_sparsity.csv', index=False)
 
     def print_results(oper_char_df):
         print("Mean coverage rate/length:")
@@ -266,16 +266,16 @@ def comparison_poisson_group_lasso_vary_s_parallel(iter=1000,
 
     #print_results(oper_char_df)
 
-def comparison_poisson_lasso_vary_s(n=500,
-                                          p=200,
-                                          signal_fac=0.1,
-                                          s=5,
-                                          sigma=2,
-                                          rho=0.3,
-                                          randomizer_scale=1.,
-                                          full_dispersion=True,
-                                          level=0.90,
-                                          range=range(0,100)):
+def comparison_logistic_lasso_vary_s(n=500,
+                                     p=200,
+                                     signal_fac=0.1,
+                                     s=5,
+                                     sigma=2,
+                                     rho=0.3,
+                                     randomizer_scale=1.,
+                                     full_dispersion=True,
+                                     level=0.90,
+                                     range=range(0,100)):
     """
     Compare to R randomized lasso
     """
@@ -287,7 +287,7 @@ def comparison_poisson_lasso_vary_s(n=500,
     oper_char["avg length"] = []
     oper_char["method"] = []
     oper_char["F1 score"] = []
-    #oper_char["runtime"] = []
+    # oper_char["runtime"] = []
 
     confint_df = pd.DataFrame()
 
@@ -295,10 +295,8 @@ def comparison_poisson_lasso_vary_s(n=500,
         for i in range:
             np.random.seed(i)
 
-            inst = poisson_group_instance
-            const = group_lasso.poisson
-            const_split = split_group_lasso.poisson
-
+            inst, const, const_split = logistic_group_instance, group_lasso.logistic, \
+                                       split_group_lasso.logistic
             signal = np.sqrt(signal_fac * 2 * np.log(p))
             signal_str = str(np.round(signal, decimals=2))
 
@@ -311,7 +309,7 @@ def comparison_poisson_lasso_vary_s(n=500,
                                   groups=groups,
                                   ndiscrete=20,
                                   nlevels=5,
-                                  sdiscrete=s-3,  # s-3, # How many discrete rvs are not null
+                                  sdiscrete=s - 3,  # s-3, # How many discrete rvs are not null
                                   equicorrelated=False,
                                   rho=rho,
                                   random_signs=True)[:3]
@@ -320,6 +318,16 @@ def comparison_poisson_lasso_vary_s(n=500,
                 n, p = X.shape
 
                 noselection = False  # flag for a certain method having an empty selected set
+
+                """if not noselection:
+                    # carving
+                    coverage_s, length_s, beta_target_s, nonzero_s, \
+                    selection_idx_s, hessian, conf_low_s, conf_up_s = \
+                        split_inference(X=X, Y=Y, n=n, p=p,
+                                        beta=beta, groups=groups, const=const_split,
+                                        proportion=0.67)
+
+                    noselection = (coverage_s is None)"""
 
                 if not noselection:
                     # MLE inference
@@ -338,7 +346,7 @@ def comparison_poisson_lasso_vary_s(n=500,
                 if not noselection:
                     # naive inference
                     coverage_naive, lengths_naive, nonzero_naive, conf_low_naive, conf_up_naive, \
-                        beta_target_naive = \
+                    beta_target_naive = \
                         naive_inference(X=X, Y=Y, groups=groups,
                                         beta=beta, const=const,
                                         n=n, level=level)
@@ -346,7 +354,6 @@ def comparison_poisson_lasso_vary_s(n=500,
 
                 if not noselection:
                     # F1 scores
-                    # F1_s = calculate_F1_score(beta, selection=nonzero_s)
                     F1 = calculate_F1_score(beta, selection=nonzero)
                     F1_ds = calculate_F1_score(beta, selection=nonzero_ds)
                     F1_naive = calculate_F1_score(beta, selection=nonzero_naive)
@@ -368,12 +375,31 @@ def comparison_poisson_lasso_vary_s(n=500,
                                         ], axis=1)
                     confint_df = pd.concat([confint_df, df_MLE], axis=0)
 
+                    """# Carving coverage
+                    oper_char["sparsity size"].append(s)
+                    oper_char["coverage rate"].append(np.mean(coverage_s))
+                    oper_char["avg length"].append(np.mean(length_s))
+                    oper_char["F1 score"].append(F1_s)
+                    oper_char["method"].append('Carving')
+                    #oper_char["runtime"].append(0)
+                    df_s = pd.concat([pd.DataFrame(np.ones(nonzero_s.sum()) * i),
+                                      pd.DataFrame(beta_target_s),
+                                      pd.DataFrame(conf_low_s),
+                                      pd.DataFrame(conf_up_s),
+                                      pd.DataFrame(beta[nonzero_s] != 0),
+                                      pd.DataFrame(np.ones(nonzero_s.sum()) * s),
+                                      pd.DataFrame(np.ones(nonzero_s.sum()) * F1_s),
+                                      pd.DataFrame(["Carving"] * nonzero_s.sum())
+                                      ], axis=1)
+                    confint_df = pd.concat([confint_df, df_s], axis=0)"""
+
                     # Data splitting coverage
                     oper_char["sparsity size"].append(s)
                     oper_char["coverage rate"].append(np.mean(coverage_ds))
                     oper_char["avg length"].append(np.mean(lengths_ds))
                     oper_char["F1 score"].append(F1_ds)
                     oper_char["method"].append('Data splitting')
+                    # oper_char["runtime"].append(0)
                     df_ds = pd.concat([pd.DataFrame(np.ones(nonzero_ds.sum()) * i),
                                        pd.DataFrame(beta_target_ds),
                                        pd.DataFrame(conf_low_ds),
@@ -405,17 +431,17 @@ def comparison_poisson_lasso_vary_s(n=500,
                     break  # Go to next iteration if we have some selection
 
     oper_char_df = pd.DataFrame.from_dict(oper_char)
-    oper_char_df.to_csv('pois_vary_sparsity' + str(range.start) + '_' + str(range.stop) + '.csv', index=False)
+    oper_char_df.to_csv('logis_vary_sparsity' + str(range.start) + '_' + str(range.stop) + '.csv', index=False)
     colnames = ['Index'] + ['target'] + ['LCB'] + ['UCB'] + ['TP'] + ['sparsity size'] + ['F1'] + ['Method']
     confint_df.columns = colnames
-    confint_df.to_csv('pois_CI_vary_sparsity'+ str(range.start) + '_' + str(range.stop) + '.csv', index=False)
+    confint_df.to_csv('logis_CI_vary_sparsity' + str(range.start) + '_' + str(range.stop) + '.csv', index=False)
 
     print("Range", range.start, "-", range.stop, "done")
-
 
 if __name__ == '__main__':
     argv = sys.argv
     start, end = int(argv[1]), int(argv[2])
     print("start:", start, ", end:", end)
-    comparison_poisson_lasso_vary_s(range=range(start, end))
+    comparison_logistic_lasso_vary_s(range=range(start,end))
+
 

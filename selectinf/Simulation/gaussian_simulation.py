@@ -7,13 +7,13 @@ import sys
 from selectinf.group_lasso_query import (group_lasso,
                                          split_group_lasso)
 
-from selectinf.Tests.instance import (gaussian_group_instance)
+from selectinf.Simulation.instance import (gaussian_group_instance)
 
-from selectinf.Tests.test_group_lasso_simulation import (calculate_F1_score,
-                                                         naive_inference,
-                                                         randomization_inference_fast,
-                                                         data_splitting,
-                                                         posterior_inference)
+from selectinf.Simulation.test_group_lasso_simulation import (calculate_F1_score,
+                                                              naive_inference,
+                                                              randomization_inference_fast,
+                                                              data_splitting,
+                                                              posterior_inference)
 
 
 def comparison_gaussian_lasso_vary_s(n=500,

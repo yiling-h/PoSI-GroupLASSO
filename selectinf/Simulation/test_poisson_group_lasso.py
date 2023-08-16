@@ -10,7 +10,7 @@ from selectinf.group_lasso_query import (group_lasso,
                                          split_group_lasso)
 
 from selectinf.base import selected_targets
-from selectinf.Tests.instance import (poisson_group_instance)
+from selectinf.Simulation.instance import (poisson_group_instance)
 
 from selectinf.base import restricted_estimator
 import scipy.stats
@@ -152,7 +152,7 @@ def randomization_inference(X, Y, n, p, beta, groups, hess=None,
                                        conv.observed_soln,
                                        dispersion=1)
 
-        result = conv.inference(target_spec,
+        result,_ = conv.inference(target_spec,
                                 method='selective_MLE',
                                 level=level)
 
@@ -225,7 +225,7 @@ def randomization_inference_fast(X, Y, n, p, beta, groups, proportion, hess=None
                                        conv.observed_soln,
                                        dispersion=1)
 
-        result = conv.inference(target_spec,
+        result,_ = conv.inference(target_spec,
                                 method='selective_MLE',
                                 level=level)
 
@@ -280,7 +280,7 @@ def split_inference(X, Y, n, p, beta, groups, const,
                                        conv.observed_soln,
                                        dispersion=1)
 
-        result = conv.inference(target_spec,
+        result,_ = conv.inference(target_spec,
                                 'selective_MLE',
                                 level=level)
         estimate = result['MLE']

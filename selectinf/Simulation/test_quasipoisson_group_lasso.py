@@ -9,8 +9,8 @@ from selectinf.group_lasso_query import (group_lasso)
 from selectinf.group_lasso_query_quasi import (group_lasso_quasi, split_group_lasso_quasi)
 
 from selectinf.base import (selected_targets, selected_targets_quasi)
-from selectinf.Tests.instance import (quasi_poisson_group_instance,
-                                      poisson_group_instance)
+from selectinf.Simulation.instance import (quasi_poisson_group_instance,
+                                           poisson_group_instance)
 
 from selectinf.base import restricted_estimator
 import scipy.stats
@@ -184,7 +184,7 @@ def randomization_inference_poisson(X, Y, n, p, beta, groups, hess=None,
                                        conv.observed_soln,
                                        dispersion=1)
 
-        result = conv.inference(target_spec,
+        result,_ = conv.inference(target_spec,
                                 method='selective_MLE',
                                 level=level)
 
@@ -401,7 +401,7 @@ def randomization_inference(X, Y, n, p, beta, groups, K=None,
                                              #cov_score=cov_score,
                                              dispersion=1)"""
 
-        result = conv.inference(target_spec,
+        result,_ = conv.inference(target_spec,
                                 method='selective_MLE',
                                 level=level)
 
@@ -499,7 +499,7 @@ def randomization_inference_fast(X, Y, n, p, beta, groups, proportion=0.5, cov_r
                                              cov_score=cov_score,
                                              dispersion=1)
 
-        result = conv.inference(target_spec,
+        result,_ = conv.inference(target_spec,
                                 method='selective_MLE',
                                 level=level)
 
@@ -557,7 +557,7 @@ def split_inference(X, Y, n, p, beta, groups, const,
                                              cov_score=cov_score,
                                              dispersion=1)
 
-        result = conv.inference(target_spec,
+        result,_ = conv.inference(target_spec,
                                 'selective_MLE',
                                 level=level)
         estimate = result['MLE']
