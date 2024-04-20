@@ -19,13 +19,10 @@ from selectinf.Simulation.test_group_lasso_simulation import (calculate_F1_score
 def comparison_gaussian_lasso_vary_s(n=500,
                                      p=200,
                                      signal_fac=0.1,
-                                     s=5,
-                                     sigma=2,
                                      rho=0.3,
-                                     randomizer_scale=1.,
-                                     full_dispersion=True,
                                      level=0.90,
-                                     range=range(0,100)):
+                                     range=range(0,100),
+                                     posterior=False):
     """
     Compare to R randomized lasso
     """
@@ -95,7 +92,7 @@ def comparison_gaussian_lasso_vary_s(n=500,
                                         n=n, level=level)
                     noselection = (coverage_naive is None)
 
-                if not noselection:
+                if not noselection and posterior:
                     # Posterior inference
                     coverage_pos, length_pos, beta_target_pos, nonzero_pos, conf_low_pos, conf_up_pos = \
                         posterior_inference(X=X, Y=Y, n=n, p=p, beta=beta, groups=groups)
@@ -107,7 +104,8 @@ def comparison_gaussian_lasso_vary_s(n=500,
                     F1 = calculate_F1_score(beta, selection=nonzero)
                     F1_ds = calculate_F1_score(beta, selection=nonzero_ds)
                     F1_naive = calculate_F1_score(beta, selection=nonzero_naive)
-                    F1_pos = calculate_F1_score(beta, selection=nonzero_pos)
+                    if posterior:
+                        F1_pos = calculate_F1_score(beta, selection=nonzero_pos)
 
                     # MLE coverage
                     oper_char["sparsity size"].append(s)
@@ -161,22 +159,23 @@ def comparison_gaussian_lasso_vary_s(n=500,
                                           ], axis=1)
                     confint_df = pd.concat([confint_df, df_naive], axis=0)
 
-                    # Posterior coverage
-                    oper_char["sparsity size"].append(s)
-                    oper_char["coverage rate"].append(np.mean(coverage_pos))
-                    oper_char["avg length"].append(np.mean(length_pos))
-                    oper_char["F1 score"].append(F1_pos)
-                    oper_char["method"].append('Posterior')
-                    df_pos = pd.concat([pd.DataFrame(np.ones(nonzero_pos.sum()) * i),
-                                        pd.DataFrame(beta_target_pos),
-                                        pd.DataFrame(conf_low_pos),
-                                        pd.DataFrame(conf_up_pos),
-                                        pd.DataFrame(beta[nonzero_pos] != 0),
-                                        pd.DataFrame(np.ones(nonzero_pos.sum()) * s),
-                                        pd.DataFrame(np.ones(nonzero_pos.sum()) * F1_pos),
-                                        pd.DataFrame(["Posterior"] * nonzero_pos.sum())
-                                        ], axis=1)
-                    confint_df = pd.concat([confint_df, df_pos], axis=0)
+                    if posterior:
+                        # Posterior coverage
+                        oper_char["sparsity size"].append(s)
+                        oper_char["coverage rate"].append(np.mean(coverage_pos))
+                        oper_char["avg length"].append(np.mean(length_pos))
+                        oper_char["F1 score"].append(F1_pos)
+                        oper_char["method"].append('Posterior')
+                        df_pos = pd.concat([pd.DataFrame(np.ones(nonzero_pos.sum()) * i),
+                                            pd.DataFrame(beta_target_pos),
+                                            pd.DataFrame(conf_low_pos),
+                                            pd.DataFrame(conf_up_pos),
+                                            pd.DataFrame(beta[nonzero_pos] != 0),
+                                            pd.DataFrame(np.ones(nonzero_pos.sum()) * s),
+                                            pd.DataFrame(np.ones(nonzero_pos.sum()) * F1_pos),
+                                            pd.DataFrame(["Posterior"] * nonzero_pos.sum())
+                                            ], axis=1)
+                        confint_df = pd.concat([confint_df, df_pos], axis=0)
 
                     break  # Go to next iteration if we have some selection
 

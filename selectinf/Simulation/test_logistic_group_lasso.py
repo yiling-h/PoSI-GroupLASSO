@@ -16,6 +16,7 @@ from selectinf.Simulation.instance import (logistic_group_instance)
 
 from selectinf.base import restricted_estimator
 import scipy.stats
+from scipy.stats import norm
 
 def calculate_F1_score(beta_true, selection):
     p = len(beta_true)
@@ -34,7 +35,7 @@ def calculate_F1_score(beta_true, selection):
         return 0
 
 def naive_inference(X, Y, groups, beta, const,
-                    n, weight_frac=1, level=0.9):
+                    n, weight_frac=1, level=0.9, p_val=False):
 
     p = X.shape[1]
     sigma_ = np.std(Y)
@@ -102,13 +103,25 @@ def naive_inference(X, Y, groups, beta, const,
 
         coverage = (target > intervals_low) * (target < intervals_up)
 
-        return coverage, intervals_up - intervals_low, nonzero, intervals_low, intervals_up, target
+        p_vals = 2 * np.min([norm.cdf(beta_MLE / sd),
+                             1 - norm.cdf(beta_MLE / sd)], axis=0)
 
-    return None, None, None, None, None, None
+        if p_val:
+            return (coverage, intervals_up - intervals_low, nonzero,
+                    intervals_low, intervals_up, target, p_vals)
+        else:
+            return (coverage, intervals_up - intervals_low, nonzero,
+                    intervals_low, intervals_up, target)
+    if p_val:
+        # If no variable selected, no inference
+        return None, None, None, None, None, None, None
+    else:
+        return None, None, None, None, None, None
 
 def randomization_inference(X, Y, n, p, beta,
                             groups, hess=None,
-                            weight_frac=1, level=0.9, solve_only = False):
+                            weight_frac=1, level=0.9, solve_only = False,
+                            p_val=False):
 
     ## solve_only: bool variable indicating whether
     ##              1) we only need the solver's output
@@ -184,13 +197,20 @@ def randomization_inference(X, Y, n, p, beta,
 
         coverage = (beta_target > intervals[:, 0]) * (beta_target < intervals[:, 1])
 
-        return coverage, (intervals[:, 1] - intervals[:, 0]), beta_target, \
-               nonzero, intervals[:, 0], intervals[:, 1]
-
-    return None, None, None, None, None, None
+        if p_val:
+            return coverage, (intervals[:, 1] - intervals[:, 0]), beta_target, \
+                   nonzero, intervals[:, 0], intervals[:, 1], pval
+        else:
+            return coverage, (intervals[:, 1] - intervals[:, 0]), beta_target, \
+                nonzero, intervals[:, 0], intervals[:, 1]
+    if p_val:
+        return None, None, None, None, None, None, None
+    else:
+        return None, None, None, None, None, None
 
 def randomization_inference_fast(X, Y, n, p, beta, groups, proportion = 0.5,
-                                 hess=None, weight_frac=1, level=0.9):
+                                 hess=None, weight_frac=1, level=0.9,
+                                 p_val=False):
 
     ## Use split group lasso to solve the hessian-randomized MLE problem efficiently
     ## Selection is consistent with the MLE method with the hessian randomization covariance
@@ -261,10 +281,17 @@ def randomization_inference_fast(X, Y, n, p, beta, groups, proportion = 0.5,
 
         coverage = (beta_target > intervals[:, 0]) * (beta_target < intervals[:, 1])
 
-        return coverage, (intervals[:, 1] - intervals[:, 0]), beta_target, \
-               nonzero, intervals[:, 0], intervals[:, 1]
+        if p_val:
+            return coverage, (intervals[:, 1] - intervals[:, 0]), beta_target, \
+                nonzero, intervals[:, 0], intervals[:, 1], pval
+        else:
+            return coverage, (intervals[:, 1] - intervals[:, 0]), beta_target, \
+                nonzero, intervals[:, 0], intervals[:, 1]
 
-    return None, None, None, None, None, None
+    if p_val:
+        return None, None, None, None, None, None, None
+    else:
+        return None, None, None, None, None, None
 
 def split_inference(X, Y, n, p, beta, groups, const,
                     weight_frac=1, proportion=0.5, level=0.9):
@@ -327,7 +354,7 @@ def split_inference(X, Y, n, p, beta, groups, const,
     return None, None, None, None, None, None, None, None
 
 def data_splitting(X, Y, n, p, beta, groups, proportion=0.5, weight_frac=1,
-                   nonzero=None, subset_select=None, level=0.9):
+                   nonzero=None, subset_select=None, level=0.9, p_val=False):
 
     if (nonzero is None) or (subset_select is None):
         # print("(Poisson Data Splitting) Selection done without carving")
@@ -413,10 +440,20 @@ def data_splitting(X, Y, n, p, beta, groups, proportion=0.5, weight_frac=1,
 
         coverage = (target > intervals_low) * (target < intervals_up)
 
-        return coverage, intervals_up - intervals_low, intervals_low, intervals_up, nonzero, target
+        p_vals = 2 * np.min([norm.cdf(beta_MLE_notS/sd),
+                             1-norm.cdf(beta_MLE_notS/sd)], axis=0)
 
-    # If no variable selected, no inference
-    return None, None, None, None, None, None
+        if p_val:
+            return (coverage, intervals_up - intervals_low,
+                    intervals_low, intervals_up, nonzero, target, p_vals)
+        else:
+            return (coverage, intervals_up - intervals_low,
+                    intervals_low, intervals_up, nonzero, target)
+    if p_val:
+        # If no variable selected, no inference
+        return None, None, None, None, None, None, None
+    else:
+        return None, None, None, None, None, None
 
 def test_comparison_logistic_group_lasso(n=500,
                                          p=200,

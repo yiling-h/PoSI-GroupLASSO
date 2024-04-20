@@ -664,11 +664,7 @@ def test_comparison_group_lasso(n=500,
 def test_comparison_gaussian_lasso_vary_s(n=500,
                                            p=200,
                                            signal_fac=0.1,
-                                           s=5,
-                                           sigma=2,
                                            rho=0.3,
-                                           randomizer_scale=1.,
-                                           full_dispersion=True,
                                            level=0.90,
                                            iter=10):
     """
