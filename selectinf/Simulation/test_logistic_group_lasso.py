@@ -17,6 +17,20 @@ from selectinf.Simulation.instance import (logistic_group_instance)
 from selectinf.base import restricted_estimator
 import scipy.stats
 from scipy.stats import norm
+from scipy.linalg import qr
+
+def rank_deficiency_qr(A, tol=None):
+    # Perform QR decomposition with column pivoting
+    Q, R, P = qr(A, mode='economic', pivoting=True)
+    # If tolerance is not provided, use a default one based on numerical precision
+    if tol is None:
+        tol = np.max(A.shape) * np.abs(np.diag(R)).max() * np.finfo(R.dtype).eps
+    # Rank is determined by the number of diagonal elements larger than the tolerance
+    rank = np.sum(np.abs(np.diag(R)) > tol)
+    # Rank deficiency is the difference between the matrix size and its rank
+    rank_deficiency = A.shape[1] - rank
+    return rank_deficiency
+
 
 def calculate_F1_score(beta_true, selection):
     p = len(beta_true)
@@ -28,7 +42,7 @@ def calculate_F1_score(beta_true, selection):
     else:
         precision = 0
     recall = (nonzero_true * selection).sum() / nonzero_true.sum()
-
+    print("precision:", precision, "recall", recall)
     if precision + recall > 0:
         return 2 * precision * recall / (precision + recall)
     else:
@@ -41,6 +55,7 @@ def naive_inference(X, Y, groups, beta, const,
     sigma_ = np.std(Y)
     #weights = dict([(i, 0.5) for i in np.unique(groups)])
     weights = dict([(i, weight_frac * sigma_ * np.sqrt(2 * np.log(p))) for i in np.unique(groups)])
+    print("Naive l1 weights:", weights)
 
     conv = const(X=X,
                  successes=Y,
@@ -54,7 +69,7 @@ def naive_inference(X, Y, groups, beta, const,
     signs, _ = conv.fit()
     nonzero = signs != 0
 
-    print('Naive selection', conv._ordered_groups)
+    # print('Naive selection', conv._ordered_groups)
 
     # Solving the inferential target
     def solve_target_restricted():
@@ -87,6 +102,21 @@ def naive_inference(X, Y, groups, beta, const,
         W = np.diag(pi_hess(X_E @ beta_MLE))
 
         f_info = X_E.T @ W @ X_E
+
+        if np.isnan(f_info).any():
+            if p_val:
+                # If no variable selected, no inference
+                return None, None, None, None, None, None, None
+            else:
+                return None, None, None, None, None, None
+
+        if rank_deficiency_qr(f_info):
+            if p_val:
+                # If no variable selected, no inference
+                return None, None, None, None, None, None, None
+            else:
+                return None, None, None, None, None, None
+
         cov = np.linalg.inv(f_info)
 
         # Standard errors
@@ -119,7 +149,7 @@ def naive_inference(X, Y, groups, beta, const,
         return None, None, None, None, None, None
 
 def randomization_inference(X, Y, n, p, beta,
-                            groups, hess=None,
+                            groups, hess=None, proportion=0.5,
                             weight_frac=1, level=0.9, solve_only = False,
                             p_val=False):
 
@@ -138,7 +168,7 @@ def randomization_inference(X, Y, n, p, beta,
         # Calculation the asymptotic covariance of the MLE
         W = np.diag(pi_hess(X @ beta_full))
 
-        return X.T @ W @ X
+        return X.T @ W @ X * (1 - proportion) / proportion
 
     if hess is None:
         hess = estimate_hess()
@@ -159,7 +189,7 @@ def randomization_inference(X, Y, n, p, beta,
     signs, _ = conv.fit()
     nonzero = (signs != 0)
 
-    print("MLE selection:", conv._ordered_groups)
+    #print("MLE selection:", conv._ordered_groups)
 
     # Solving the inferential target
     def solve_target_restricted():
@@ -233,7 +263,8 @@ def randomization_inference_fast(X, Y, n, p, beta, groups, proportion = 0.5,
 
     sigma_ = np.std(Y)
     #weights = dict([(i, 0.5) for i in np.unique(groups)])
-    weights = dict([(i, weight_frac * sigma_ * np.sqrt(2 * np.log(p))) for i in np.unique(groups)])
+    weights = dict([(i, weight_frac / np.sqrt(proportion) * sigma_ * np.sqrt(2 * np.log(p))) for i in np.unique(groups)])
+    print("MLE l1 weights:", weights)
 
     conv = split_group_lasso.logistic(X=X,
                                       successes=Y,
@@ -242,7 +273,8 @@ def randomization_inference_fast(X, Y, n, p, beta, groups, proportion = 0.5,
                                       weights=weights,
                                       useJacobian=True,
                                       proportion=proportion,
-                                      cov_rand=hess)
+                                      cov_rand=hess,
+                                      )
 
     signs, _ = conv.fit()
     nonzero = (signs != 0)
@@ -354,7 +386,8 @@ def split_inference(X, Y, n, p, beta, groups, const,
     return None, None, None, None, None, None, None, None
 
 def data_splitting(X, Y, n, p, beta, groups, proportion=0.5, weight_frac=1,
-                   nonzero=None, subset_select=None, level=0.9, p_val=False):
+                   nonzero=None, subset_select=None, level=0.9, p_val=False,
+                   count_rank_deficiency=False):
 
     if (nonzero is None) or (subset_select is None):
         # print("(Poisson Data Splitting) Selection done without carving")
@@ -371,7 +404,8 @@ def data_splitting(X, Y, n, p, beta, groups, proportion=0.5, weight_frac=1,
         p = X.shape[1]
         sigma_ = np.std(Y_S)
         # weights = dict([(i, 0.5) for i in np.unique(groups)])
-        weights = dict([(i, (n1/n)*weight_frac * sigma_ * np.sqrt(2 * np.log(p))) for i in np.unique(groups)])
+        weights = dict([(i, np.sqrt(proportion) * weight_frac * sigma_ * np.sqrt(2 * np.log(p))) for i in np.unique(groups)])
+        #print("DS l1 weights:", weights)
 
         conv = group_lasso.logistic(X=X_S,
                                     successes=Y_S,
@@ -382,7 +416,7 @@ def data_splitting(X, Y, n, p, beta, groups, proportion=0.5, weight_frac=1,
                                     perturb=np.zeros(p),
                                     ridge_term=0.)
 
-        signs, _ = conv.fit()
+        signs, _ = conv.fit(solve_only=True)
         # print("signs",  signs)
         nonzero = signs != 0
 
@@ -424,6 +458,28 @@ def data_splitting(X, Y, n, p, beta, groups, proportion=0.5, weight_frac=1,
         W = np.diag(pi_hess(X_notS_E @ beta_MLE_notS))
 
         f_info = X_notS_E.T @ W @ X_notS_E
+
+        if np.isnan(f_info).any():
+            if p_val:
+                if count_rank_deficiency:
+                    return True, None, None, None, None, nonzero, None, None
+                # If no variable selected, no inference
+                return None, None, None, None, nonzero, None, None
+            else:
+                if count_rank_deficiency:
+                    return True, None, None, None, None, nonzero, None
+                return None, None, None, None, nonzero, None
+
+        if rank_deficiency_qr(f_info):
+            if p_val:
+                if count_rank_deficiency:
+                    return True, None, None, None, None, nonzero, None, None
+                # If no variable selected, no inference
+                return None, None, None, None, nonzero, None, None
+            else:
+                if count_rank_deficiency:
+                    return True, None, None, None, None, nonzero, None
+                return None, None, None, None, nonzero, None
         cov = np.linalg.inv(f_info)
 
         # Standard errors
@@ -444,16 +500,27 @@ def data_splitting(X, Y, n, p, beta, groups, proportion=0.5, weight_frac=1,
                              1-norm.cdf(beta_MLE_notS/sd)], axis=0)
 
         if p_val:
+            if count_rank_deficiency:
+                return (False, coverage, intervals_up - intervals_low,
+                        intervals_low, intervals_up, nonzero, target, p_vals)
             return (coverage, intervals_up - intervals_low,
                     intervals_low, intervals_up, nonzero, target, p_vals)
         else:
+            if count_rank_deficiency:
+                return (False, coverage, intervals_up - intervals_low,
+                        intervals_low, intervals_up, nonzero, target)
             return (coverage, intervals_up - intervals_low,
                     intervals_low, intervals_up, nonzero, target)
     if p_val:
-        # If no variable selected, no inference
-        return None, None, None, None, None, None, None
+        if count_rank_deficiency:
+            # If no variable selected, no inference
+            return False, None, None, None, None, nonzero, None, None
+        else:
+            return None, None, None, None, nonzero, None, None
     else:
-        return None, None, None, None, None, None
+        if count_rank_deficiency:
+            return False, None, None, None, None, nonzero, None
+        return None, None, None, None, nonzero, None
 
 def test_comparison_logistic_group_lasso(n=500,
                                          p=200,

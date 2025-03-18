@@ -1,0 +1,5 @@
+n,coverage rate Naive,coverage rate Data splitting,coverage rate MLE,F1 score Naive,F1 score Data splitting,F1 score MLE,avg length Data splitting,avg length MLE
+100,0.778,0.92,0.902,0.284,0.271,0.244,10.853,0.894
+200,0.77,0.911,0.901,0.254,0.273,0.257,0.796,0.635
+350,0.752,0.892,0.882,0.282,0.275,0.275,0.508,0.485
+500,0.782,0.9,0.904,0.264,0.262,0.247,0.428,0.41

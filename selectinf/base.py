@@ -77,6 +77,18 @@ def selected_targets(loglike,
     Qfeat = Hfeat[features]
     _score_linear = -Hfeat
 
+    """def pi_hess(x):
+        return np.exp(x) / (1 + np.exp(x)) ** 2
+    print("Qfeat rank:", np.linalg.matrix_rank(Qfeat))
+    print("Qfeat dim:", Qfeat.shape[1])
+    print("Xfeat rank:", np.linalg.matrix_rank(X[:, features]))
+    print("Xfeat dim:", X[:, features].shape[1])
+
+    if np.linalg.matrix_rank(Qfeat) != Qfeat.shape[1]:
+        print(Qfeat)
+        print(Hfeat)
+        print("Hessian:", pi_hess(linpred))"""
+
     # cov_target: (X_E'X_E)^-1 = covariance of selected OLS estimator hat{beta_S}
     cov_target = np.linalg.inv(Qfeat)
     crosscov_target_score = _score_linear.dot(cov_target)

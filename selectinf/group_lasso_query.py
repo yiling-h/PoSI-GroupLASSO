@@ -63,7 +63,7 @@ class group_lasso(gaussian_query):
 
     def fit(self,
             solve_args={'tol': 1.e-12, 'min_its': 50},
-            perturb=None):
+            perturb=None, solve_only=False):
 
         # solve the randomized version of group lasso
         (self.observed_soln,
@@ -147,6 +147,9 @@ class group_lasso(gaussian_query):
         self.active_signs = active_signs
         #self.active_signs[unpenalized] = np.nan
         self.active = active
+
+        if solve_only:
+            return active_signs, soln
 
         # compute part of hessian
         # Not very much useful for non-carving inference
@@ -409,12 +412,10 @@ class split_group_lasso(group_lasso):
             self.randomizer = randomization.gaussian(cov_rand)
             self._initial_omega = self.randomizer.sample()
         else:
-            self.randomizer = randomizer # None
+            self.randomizer = None # None
 
         # If we have both cov_rand and perturb_objective, prioritize perturb_objective
-        if perturb_objective is None:
-            self._initial_omega = 0
-        else:
+        if perturb_objective is not None:
             self._initial_omega = perturb_objective
 
         # Whether a Jacobian is needed for gaussian_query
@@ -526,25 +527,33 @@ class split_group_lasso(group_lasso):
                                   perturb=None,
                                   solve_args={'tol': 1.e-15, 'min_its': 100}):
 
-        # take a new perturbation if none supplied
-        if perturb is not None:
-            self._selection_idx = perturb
-        if not hasattr(self, "_selection_idx"):
-            X, y = self.loglike.data
-            total_size = n = X.shape[0]
-            pi_s = self.proportion_select
-            self._selection_idx = np.zeros(n, np.bool)
-            self._selection_idx[:int(pi_s * n)] = True
-            np.random.shuffle(self._selection_idx)
+        if self._initial_omega is None:
+            # take a new perturbation if none supplied
+            if perturb is not None:
+                self._selection_idx = perturb
+            if not hasattr(self, "_selection_idx"):
+                X, y = self.loglike.data
+                total_size = n = X.shape[0]
+                pi_s = self.proportion_select
+                self._selection_idx = np.zeros(n, np.bool)
+                self._selection_idx[:int(pi_s * n)] = True
+                np.random.shuffle(self._selection_idx)
 
-        inv_frac = 1 / self.proportion_select
-        quad = rr.identity_quadratic(self.ridge_term,
-                                     0,
-                                     -self._initial_omega, # typically 0, unless perturbation is enforced
-                                     0)
+            inv_frac = 1 / self.proportion_select
+            quad = rr.identity_quadratic(self.ridge_term,
+                                         0,
+                                         -self._initial_omega, # typically 0, unless perturbation is enforced
+                                         0)
 
-        randomized_loss = self.loglike.subsample(self._selection_idx)
-        randomized_loss.coef *= inv_frac
+            randomized_loss = self.loglike.subsample(self._selection_idx)
+            randomized_loss.coef *= inv_frac
+        else:
+            quad = rr.identity_quadratic(self.ridge_term,
+                                         0,
+                                         -self._initial_omega,
+                                         0)
+
+            randomized_loss = self.loglike
 
         problem = rr.simple_problem(randomized_loss, self.penalty)
 
@@ -613,7 +622,8 @@ class split_group_lasso(group_lasso):
                                  randomizer=None,
                                  useJacobian=useJacobian,
                                  use_lasso=use_lasso,
-                                 perturb=perturb)
+                                 perturb=perturb,
+                                 estimate_dispersion=False)
 
     @staticmethod
     def poisson(X,

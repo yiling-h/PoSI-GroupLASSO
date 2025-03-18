@@ -1,0 +1,13 @@
+n,method,0.7
+100,MLE,0.398
+100,Data splitting,0.391
+100,Naive,0.333
+200,MLE,0.397
+200,Data splitting,0.386
+200,Naive,0.340
+350,MLE,0.428
+350,Data splitting,0.427
+350,Naive,0.356
+500,MLE,0.420
+500,Data splitting,0.404
+500,Naive,0.335
