@@ -1,10 +1,8 @@
 Cython
-numpy==1.23.4
+numpy
 scipy
 pandas
 mpmath
 pyinter
-sklearn
-# keras
-# tensorflow
+scikit-learn
 traitlets
