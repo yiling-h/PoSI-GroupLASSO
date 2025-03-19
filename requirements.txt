@@ -1,8 +1,9 @@
 Cython
-numpy
+numpy<1.24
 scipy
 pandas
 mpmath
 pyinter
 scikit-learn
 traitlets
+seaborn
