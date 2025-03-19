@@ -1,13 +1,32 @@
 # PoSI-GroupLASSO
 Post-selection Inference for Group Lasso Penalized M-Estimators
 
+## Cloning
+```angular2html
+   git clone https://github.com/yiling-h/PoSI-GroupLASSO.git
+    # then cd into ./PoSI-GroupLASSO
+   git switch pysi
+```
+
 ## Installation
-    virtualenv env3 -p python3 (alternatively virtualenv env3 -p python3.10)
+```angular2html
+    virtualenv env3 -p python3 
+    #(alternatively virtualenv env3 -p python3.10)
     source env3/bin/activate
     pip install -r requirements.txt
+```
 To install the package `regreg`, do:
 
     pip install git+https://github.com/regreg/regreg.git
+
+## Jupyter Notebook
+To use the code in Jupyter Notebook, do:
+```angular2html
+    pip install -e .
+    pip install jupyter ipykernel
+    python -m ipykernel install --user --name env3 --display-name "Python (env3)"
+```
+Then run the code using the kernel "Python (env3)".
 
 A more detailed tutorial of installation can be found at `selectinf/Replicability/replication_tutorial.ipynb` 
 in this repository.
